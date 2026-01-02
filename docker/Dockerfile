@@ -9,10 +9,13 @@ COPY php.ini /opt/bitnami/php/etc/conf.d/php.ini
 
 USER root
 
-# Install Supervisor
-RUN install_packages supervisor \
+# ✅ Install PostgreSQL PHP extensions + Supervisor
+
+RUN install_packages supervisor postgresql-client libpq5 libpq-dev \
     && mkdir -p /etc/supervisor/conf.d \
-    && mkdir -p /var/log/supervisor
+    && mkdir -p /var/log/supervisor \
+    && echo "extension=pdo_pgsql" > /opt/bitnami/php/etc/conf.d/pdo_pgsql.ini \
+    && echo "extension=pgsql" > /opt/bitnami/php/etc/conf.d/pgsql.ini
 
 # Copy Supervisor configuration (you will create this file next)
 COPY supervisord.conf /etc/supervisor/supervisord.conf
