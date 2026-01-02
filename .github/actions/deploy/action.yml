@@ -1,0 +1,58 @@
+name: deploy
+description: Deploy new image version to the GitOps repository
+inputs:
+  gitops-repo:
+    description: The name of the GitOps repository in `<org/user>/repo` format
+    required: true
+  gitops-deployment-file-path:
+    description: The path of the deployment YAML file to update with the new version
+    required: true
+  image-tag-prefix:
+    description: The prefix of the image tag
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Add SHORT_SHA env
+      run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`" >> $GITHUB_ENV
+      shell: bash
+    - name: Checkout GitOps repository
+      shell: bash
+      run: |-
+        set -euxo pipefail
+
+        # install git
+        sudo cat /etc/os-release
+        sudo apt-get update
+        sudo apt-get install -y git
+
+        # configure git
+        git config --global user.email "eladio.sareno@lanexcorp.com"
+        git config --global user.name "Eladio Sareno Jr"
+
+        # clone gitops repo
+        git clone --depth 1 ${{ inputs.gitops-repo }} ${{ github.workspace }}/gitops
+        ls -lha ${{ github.workspace }}/gitops
+    - name: Update image version
+      shell: bash
+      working-directory: ${{ github.workspace }}/gitops
+      run: |-
+        set -euxo pipefail
+        git --no-pager log -n 3
+
+        # deployment: show original file
+        cat ${{ inputs.gitops-deployment-file-path }}
+        # deployment: update image version
+        sed "s/^\(.*\)image: \"\(.*\):${{ inputs.image-tag-prefix }}-\(.*\)\" # @mainImage$/\1image: \"\2:${{ inputs.image-tag-prefix }}-${{ env.SHORT_SHA }}\" # @mainImage/g" -i ${{ inputs.gitops-deployment-file-path }}
+
+        # show changes
+        git --no-pager diff
+        
+        # check if there were changes then commit
+        git diff --quiet --exit-code ${{ inputs.gitops-deployment-file-path }} || (
+            git add ${{ inputs.gitops-deployment-file-path }}
+            git commit -m "chore(ppih): Release ${{ inputs.image-tag-prefix }}-${{ env.SHORT_SHA }}"
+          )
+
+        # push chages
+        git push origin main

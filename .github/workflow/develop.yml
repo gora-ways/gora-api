@@ -1,0 +1,35 @@
+name: Dev Pipeline
+on:
+  push:
+    branches:
+      - develop
+permissions:
+  id-token: write
+  contents: read # This is required for actions/checkout
+jobs:
+  build:
+    environment: develop
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: "actions/checkout@v4" # https://github.com/actions/checkout
+      - name: Add SHORT_SHA env
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`" >> $GITHUB_ENV
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          docker-image-tag: ${{ vars.AWS_ECR_REPOSITORY }}:${{ vars.ECR_TAG_PREFIX }}-${{ env.SHORT_SHA }}
+  deploy:
+    needs: build
+    environment: develop
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: "actions/checkout@v4" # https://github.com/actions/checkout
+      - name: Deploy
+        uses: ./.github/actions/deploy
+        with:
+          gitops-repo: ${{ secrets.GITOPS_REPO }}
+          gitops-deployment-file-path: ${{ vars.DEPLOYMENT_FILE_PATH }}
+          image-tag-prefix: ${{ vars.ECR_TAG_PREFIX }}
