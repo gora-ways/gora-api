@@ -89,7 +89,6 @@ class RouteService
         // Compute fares and distance
         foreach ($results as $path) {
             if ($path->count() > 0) {
-
                 // With multiple routes
                 $paths[] = $this->computeDistanceMultipleRoutes($path, $origin, $destination, $radius);
             } else if ($path->count() == 0) {

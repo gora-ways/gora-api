@@ -17,6 +17,7 @@ class Route extends Model
         'name',
         'geom',
         'points',
+        'points_color',
 
         'base_fare',
         'base_fare_minimum_unit',

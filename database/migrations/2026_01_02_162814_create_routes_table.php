@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('name')->nullable();
             $table->jsonb('points')->nullable(); // optional: store original [{lat,lng}] for UI/debug
+            $table->string('points_color')->default('#35badb')->comment('HEX Value');
             $table->timestamps();
         });
 
